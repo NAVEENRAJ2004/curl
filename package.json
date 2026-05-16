@@ -5,5 +5,8 @@
   "type": "commonjs",
   "scripts": {
     "test": "node scripts/smoke-test.js"
+  },
+  "dependencies": {
+    "@upstash/redis": "^1.34.1"
   }
 }

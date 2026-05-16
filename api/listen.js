@@ -1,4 +1,4 @@
-const { getStore } = require("./_store");
+const { appendEvent } = require("./_store");
 
 function readBody(req) {
   return new Promise((resolve, reject) => {
@@ -39,7 +39,6 @@ module.exports = async (req, res) => {
     return;
   }
 
-  const store = getStore();
   const rawBody = await readBody(req);
   const contentType = req.headers["content-type"] || "";
 
@@ -51,8 +50,7 @@ module.exports = async (req, res) => {
     body: parseBody(rawBody, contentType)
   };
 
-  store.events.unshift(entry);
-  store.events = store.events.slice(0, 50);
+  await appendEvent(entry);
 
   res.status(200).json({ ok: true, received: entry });
 };
