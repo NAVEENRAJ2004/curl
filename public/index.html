@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mini Webhook Listener</title>
+    <style>
+      :root {
+        color-scheme: light;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+        background: #f7f7fb;
+        color: #1a1a1a;
+      }
+
+      main {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 32px 20px 64px;
+      }
+
+      header {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 24px;
+      }
+
+      h1 {
+        font-size: 28px;
+        margin: 0;
+      }
+
+      p {
+        margin: 0;
+        color: #555;
+      }
+
+      .status {
+        margin-top: 8px;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        font-size: 14px;
+        color: #444;
+      }
+
+      .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #20b455;
+        box-shadow: 0 0 8px rgba(32, 180, 85, 0.4);
+      }
+
+      .events {
+        display: grid;
+        gap: 14px;
+      }
+
+      .event {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 16px;
+        box-shadow: 0 10px 30px rgba(18, 18, 30, 0.08);
+      }
+
+      .event-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        font-size: 13px;
+        color: #666;
+        margin-bottom: 8px;
+      }
+
+      .event-body {
+        background: #f2f3f8;
+        padding: 12px;
+        border-radius: 10px;
+        font-family: "Consolas", "Courier New", monospace;
+        font-size: 13px;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .empty {
+        background: #fff7e8;
+        border-radius: 12px;
+        padding: 16px;
+        color: #7a4d00;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Mini Webhook Listener</h1>
+        <p>Send any webhook to <strong>/listen</strong> and it appears here.</p>
+        <div class="status">
+          <span class="dot"></span>
+          <span id="status-text">Waiting for webhooks…</span>
+        </div>
+      </header>
+
+      <section id="events" class="events"></section>
+    </main>
+
+    <script>
+      const eventsEl = document.getElementById("events");
+      const statusText = document.getElementById("status-text");
+      let lastCount = 0;
+
+      function formatBody(body) {
+        if (body === null || body === undefined) {
+          return "(empty body)";
+        }
+
+        if (typeof body === "string") {
+          return body;
+        }
+
+        try {
+          return JSON.stringify(body, null, 2);
+        } catch {
+          return String(body);
+        }
+      }
+
+      function renderEvents(events) {
+        if (!events.length) {
+          eventsEl.innerHTML = "<div class=\"empty\">No webhooks received yet.</div>";
+          return;
+        }
+
+        eventsEl.innerHTML = events
+          .map((event) => {
+            return `
+              <article class="event">
+                <div class="event-header">
+                  <span>${event.method}</span>
+                  <span>${new Date(event.receivedAt).toLocaleString()}</span>
+                </div>
+                <div class="event-body">${formatBody(event.body)}</div>
+              </article>
+            `;
+          })
+          .join("");
+      }
+
+      async function fetchEvents() {
+        try {
+          const response = await fetch("/api/events");
+          const data = await response.json();
+          const events = data.events || [];
+
+          renderEvents(events);
+          if (events.length !== lastCount) {
+            statusText.textContent = `Received ${events.length} webhook${events.length === 1 ? "" : "s"}`;
+            lastCount = events.length;
+          }
+        } catch {
+          statusText.textContent = "Unable to reach /api/events";
+        }
+      }
+
+      fetchEvents();
+      setInterval(fetchEvents, 2000);
+    </script>
+  </body>
+</html>
